@@ -72,7 +72,7 @@
 
 예상대로이다. 쿠키를 추출하면서 $REMOTE_ADDR이 덮어씌워졌고, $ip에는 쿠키에 있던 $REMOTE_ADDR이 들어간 것이다. 이제는 다음으로 str_replace를 해결하면 되는데, 이것또한 어려운 것이 아니었다. 입력하고자 하는 값은 127.0.0.1이고, 12와 7., 0., ..이 바뀐다. 이러한 점을 생각하여 String을 구상하여보면 쉽다.
 
-![1-3](Img/1-3.png)
+![AA](Img/1-3.png)
 
 그렇게 완성된 문자열은  "112277...00...00...1". 이것을 쿠키값에 넣고 결과를 확인해보자.
 
@@ -91,3 +91,50 @@
 ![2-1](Img/2-1.png)
 
  SQL Injection이라고 대놓고 박혀있다.
+
+그 말은, SQL Query문과 Filtering에서 막히지 않은 벽이 하나 있다는 말일 것이다. 소스코드를 통해서 확인해보도록 하자.
+
+```php+HTML
+<?php
+  include "../../config.php";
+  if($_GET['view_source']) view_source();
+?><html>
+<head>
+<title>Challenge 18</title>
+<style type="text/css">
+body { background:black; color:white; font-size:10pt; }
+input { background:silver; }
+a { color:lightgreen; }
+</style>
+</head>
+<body>
+<br><br>
+<center><h1>SQL INJECTION</h1>
+<form method=get action=index.php>
+<table border=0 align=center cellpadding=10 cellspacing=0>
+<tr><td><input type=text name=no></td><td><input type=submit></td></tr>
+</table>
+</form>
+<a style=background:gray;color:black;width:100;font-size:9pt;><b>RESULT</b><br>
+<?php
+if($_GET['no']){
+  $db = dbconnect();
+  if(preg_match("/ |\/|\(|\)|\||&|select|from|0x/i",$_GET['no'])) exit("no hack");
+  $result = mysqli_fetch_array(mysqli_query($db,"select id from chall18 where id='guest' and no=$_GET[no]")); // admin's no = 2
+
+  if($result['id']=="guest") echo "hi guest";
+  if($result['id']=="admin"){
+    solve(18);
+    echo "hi admin!";
+  }
+}
+?>
+</a>
+<br><br><a href=?view_source=1>view-source</a>
+</center>
+</body>
+</html>
+```
+
+여기서 SQL Query는 "select id from chall18 where id='guest' and no=$_GET[no]"인데, 여기서 다음 줄에 guest인 것이 확인되면 guest 아이디로 인식되므로, where 문 전체를 무력화시킬 필요가 있을 것이다. 
+

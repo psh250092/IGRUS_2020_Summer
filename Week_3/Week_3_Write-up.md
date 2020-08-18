@@ -136,5 +136,76 @@ if($_GET['no']){
 </html>
 ```
 
-여기서 SQL Query는 "select id from chall18 where id='guest' and no=$_GET[no]"인데, 여기서 다음 줄에 guest인 것이 확인되면 guest 아이디로 인식되므로, where 문 전체를 무력화시킬 필요가 있을 것이다. 
+여기서 SQL Query는 "select id from chall18 where id='guest' and no=$_GET[no]"인데, 여기서 다음 줄에 guest인 것이 확인되면 guest 아이디로 인식되므로, where 문 전체를 무력화시킬 필요가 있을 것이다. 그러나, preg_match에서 여러 특수문자와 select, from, 0x, 공백이 필터링된다. 여기서 union은 select와 from이 필터링 되었으니 쓸 수 없고, 선택지는 or과 and만이 남는다. +가 필터링되지만 효과가 없는 듯 하다. 이 공백을 어떻게 만들어낼 것인가.
 
+##### 2) 풀이 과정
+
+유심히 보니, 필터링 되지 않은 특수문자가 하나 보인다. 탭.
+
+![2-2](Img/2-2.png)
+
+하지만 탭을 눌러도, 옆 버튼으로 포커스가 옮겨질 뿐, 탭이 입력되진 않는다. 그러면 다른 곳에서 탭을 복사해서 붙여넣는 것은?
+
+![2-3](Img/2-3.png)
+
+작동한다! 이것과 or을 조합하여 admin인 테이블을 가져와보자.
+
+"	2	or	id="admin""
+
+와 같이 공격 쿼리를 구성하여 공격해보았다.
+
+##### 3) 결과 확인
+
+![2-4](Img/2-4.png)
+
+공격코드가 성공적으로 작동한 것이 보인다.
+
+#### 3. Webhacking.kr No.16
+
+##### 1) 문제 분석
+
+![3-1](Img/3-1.png)
+
+WASD에 따라 저 노란색 별이 움직이고, 마우스를 갖다대면 조그만 별들은 사라지며, 랜덤한 색깔들이 영롱하게 수를 놓는 영문모를 사이트가 보인다.
+
+일단 누가봐도 JS로 보이니, F12를 눌러서 JS 코드를 확인해보자.
+
+```html
+<script> 
+document.body.innerHTML+="<font color=yellow id=aa style=position:relative;left:0;top:0>*</font>";
+function mv(cd){
+  kk(star.style.left-50,star.style.top-50);
+  if(cd==100) star.style.left=parseInt(star.style.left+0,10)+50+"px";
+  if(cd==97) star.style.left=parseInt(star.style.left+0,10)-50+"px";
+  if(cd==119) star.style.top=parseInt(star.style.top+0,10)-50+"px";
+  if(cd==115) star.style.top=parseInt(star.style.top+0,10)+50+"px";
+  if(cd==124) location.href=String.fromCharCode(cd)+".php"; // do it!
+}
+function kk(x,y){
+  rndc=Math.floor(Math.random()*9000000);
+  document.body.innerHTML+="<font color=#"+rndc+" id=aa style=position:relative;left:"+x+";top:"+y+" onmouseover=this.innerHTML=''>*</font>";
+}
+</script>
+```
+
+이 부분에 아마 답이 숨겨져 있을 것이다.
+
+##### 2) 풀이 과정
+
+코드를 대충 해석해보자. mv함수는 보나마나 body같은 곳에 이벤트 리스너로 걸려 있는 함수가 분명하다. 아마 키를 누르면 그에 맞는 cd값이 넘어오고, kk를 통해 작은 별을 만들어낸 후, cd값에 따라 저 별이 움직이는 것이리라. 그런데, 어울리지 않는 코드가 하나 보인다.
+
+```javascript
+if(cd==124) location.href=String.fromCharCode(cd)+".php"; // do it!
+```
+
+입력값이 십진수 124라면, php 페이지로 향한다고? 아스키값 124의 문자는 " | "이다. 한 번 이 문자를 입력하여보자.
+
+##### 3) 결과 확인
+
+![3-2](Img/3-2.png)
+
+너무나도 쉽게 풀려버린 것을 확인할 수 있다. URL에 들어가 있는 "|.php"는 덤. 이렇게 간단한 문제가 앞으로도 죽 나오면 행복하련만.
+
+#### 4. Webhacking.kr No.16
+
+##### 1) 문제 분석
